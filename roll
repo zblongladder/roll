@@ -1,0 +1,67 @@
+#!/usr/bin/env ruby
+require 'optparse'
+
+def roll (sides)
+  return 1 + rand(sides)
+end
+def fudge_roll (num_dice)
+  total = 0
+  num_dice.times do |round|
+    roll = roll(3)-2 # Fudge dice each roll -1, 0, or 1
+    puts "Die #{round}: #{roll}" if $verbose_mode
+    total += roll
+  end
+  return total
+end
+def normal_roll (num_dice, type_dice)
+  total=0
+  num_dice.times do |round|
+    roll = roll(type_dice)
+    puts "Die #{round}: #{roll}" if $verbose_mode
+    total += roll
+  end
+  return total
+end
+
+switches = ARGV.getopts("w98vq");
+
+if (switches['9'] || switches['8']) && !switches['w']
+    abort("9-again and 8-again require WoD mode.")
+end
+
+# global vars for output mode switches
+$verbose_mode=switches['v']
+$quiet_mode=switches['q']
+
+
+ARGV.each do |arg|
+  regex = /^(?<num_dice>\d+)d(?<type_dice>[fF]|\d+)(\+(?<offset>\d+))?$/
+  unless(arg =~ regex)
+      abort("Arguments must be patterned $xd$y[+z], e.g., 4d6+2")
+  end
+  
+  arg_parts = regex.match(arg)
+
+  if(arg_parts['type_dice'] =~ /^[fF]$/)
+    fudge_mode=true
+  else
+    fudge_mode=false
+  end
+
+
+  num_dice=arg_parts['num_dice'].to_i
+  type_dice=arg_parts['type_dice'].to_i unless fudge_mode
+  offset=arg_parts['offset'].to_i
+  
+  result = 0
+  
+  if(fudge_mode)
+    result=fudge_roll(num_dice)+offset
+  else
+    result = normal_roll(num_dice, type_dice) + offset
+  end
+  puts "Offset: #{offset}" if $verbose_mode and offset!=0
+  puts "Total: #{result}" unless $quiet_mode
+  print result if $quiet_mode
+
+end
